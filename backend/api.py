@@ -1,7 +1,6 @@
 from ninja import NinjaAPI
-from ninja.renderers import JSONRenderer
-# On importe le visualiseur Swagger officiel de Django Ninja
-from ninja.openapi.views import SwaggerDocsViewer
+# On importe correctement le visualiseur Swagger officiel
+from ninja.openapi.docs import Swagger
 
 from apps.core.exceptions import register_exception_handlers
 from apps.accounts.api import router as accounts_router
@@ -13,17 +12,17 @@ from apps.payments.api import router as payments_router
 from apps.notifications.api import router as notifications_router
 from apps.audit.api import router as audit_router
 
-# Configuration propre du viewer Swagger avec les CDN indispensables pour Render
-swagger_viewer = SwaggerDocsViewer(
-    swagger_js="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-    swagger_css="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
-)
-
+# Configuration de l'interface avec les CDN pour Render
 api = NinjaAPI(
     title="API — Gestion de Cimetière GI2",
     version="2.0.0",
     description="API REST (Django Ninja) pour la gestion numérique du cimetière municipal.",
-    docs_viewer=swagger_viewer,  # <--- On lui passe proprement les CDN ici
+    docs=Swagger(
+        settings={
+            "swagger_js": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+            "swagger_css": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+        }
+    ),
 )
 
 register_exception_handlers(api)
