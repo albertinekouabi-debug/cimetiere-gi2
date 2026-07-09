@@ -1,4 +1,5 @@
 from ninja import NinjaAPI
+# On ajoute l'importation de Swagger
 from ninja.openapi.docs import Swagger
 
 from apps.core.exceptions import register_exception_handlers
@@ -11,7 +12,7 @@ from apps.payments.api import router as payments_router
 from apps.notifications.api import router as notifications_router
 from apps.audit.api import router as audit_router
 
-# Configuration valide de l'API avec injection des CDN officiels
+# On configure l'API en lui passant les liens CDN indispensables pour Render
 api = NinjaAPI(
     title="API — Gestion de Cimetière GI2",
     version="2.0.0",
