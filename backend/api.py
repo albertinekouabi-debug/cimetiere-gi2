@@ -1,5 +1,7 @@
 from ninja import NinjaAPI
-from ninja.security import HttpBearer  # Utile si vous utilisez JWT pour l'authentification
+from ninja.renderers import JSONRenderer
+# On importe le visualiseur Swagger officiel de Django Ninja
+from ninja.openapi.views import SwaggerDocsViewer
 
 from apps.core.exceptions import register_exception_handlers
 from apps.accounts.api import router as accounts_router
@@ -11,14 +13,17 @@ from apps.payments.api import router as payments_router
 from apps.notifications.api import router as notifications_router
 from apps.audit.api import router as audit_router
 
-# Initialisation améliorée pour la production sur Render
+# Configuration propre du viewer Swagger avec les CDN indispensables pour Render
+swagger_viewer = SwaggerDocsViewer(
+    swagger_js="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+    swagger_css="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+)
+
 api = NinjaAPI(
     title="API — Gestion de Cimetière GI2",
     version="2.0.0",
     description="API REST (Django Ninja) pour la gestion numérique du cimetière municipal.",
-    # Correction de l'écran blanc : Force le chargement des scripts de l'interface Swagger via CDN
-    swagger_js="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-    swagger_css="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    docs_viewer=swagger_viewer,  # <--- On lui passe proprement les CDN ici
 )
 
 register_exception_handlers(api)
