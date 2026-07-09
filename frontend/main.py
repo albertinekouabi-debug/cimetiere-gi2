@@ -7,6 +7,7 @@ utilisateurs simultanés.
 """
 
 import flet as ft
+import os
 
 from app.config import APP_TITLE, APP_PORT
 from app.components.theme import apply_page_theme
@@ -235,8 +236,12 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.run(
-        main,
+    # Render fournit la variable 'PORT'. Si elle est absente, on utilise APP_PORT (local)
+    render_port = int(os.environ.get("PORT", APP_PORT))
+    
+    ft.app(
+        target=main,
         view=ft.AppView.WEB_BROWSER,
-        port=APP_PORT,
+        port=render_port,
+        host="0.0.0.0"  # Indispensable pour que le proxy de Render puisse rediriger le trafic
     )
