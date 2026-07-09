@@ -5,23 +5,9 @@ from django.conf.urls.static import static
 from api import api
 from apps.cemetery.views import carte_embed
 
-# On importe l'outil de rendu OpenAPI et la configuration Swagger officielle
-from ninja.openapi.views import openapi_view
-from ninja.openapi.docs import Swagger
-
 urlpatterns = [
     path("admin/", admin.site.urls),
-    
-    # SOLUTION : On encapsule proprement les CDN dans l'objet Swagger attendu par la vue
-    path("api/docs", openapi_view, {
-        "api": api,
-        "docs": Swagger(settings={
-            "swagger_js": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-            "swagger_css": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
-        })
-    }),
-    
-    path("api/", api.urls),
+    path("api/", api.urls), # C'est cette ligne qui gère déjà automatiquement /api/docs !
     path("cimetiere/carte-embed/", carte_embed, name="carte_embed"),
 ]
 
