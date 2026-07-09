@@ -100,6 +100,12 @@ JWT_REFRESH_TOKEN_LIFETIME_DAYS = config("JWT_REFRESH_TOKEN_LIFETIME_DAYS", defa
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
 CORS_ALLOW_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="",
+    cast=Csv(),
+)
+
 # ─── MTN MoMo ─────────────────────────────────────────────────────────────────
 MOMO_ENV = config("MOMO_ENV", default="sandbox")
 MOMO_BASE_URL = config("MOMO_BASE_URL", default="https://sandbox.momodeveloper.mtn.com")
@@ -157,6 +163,11 @@ LOGGING = {
         "cimetiere": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
     },
 }
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 # ─── Ninja ────────────────────────────────────────────────────────────────────
 NINJA_PAGINATION_PER_PAGE = 20

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: cimetiere-backend
+    runtime: python
+
+    rootDir: backend
+
+    buildCommand: ./build.sh
+
+    startCommand: gunicorn config.wsgi:application
+
+    envVars:
+      - key: DJANGO_DEBUG
+        value: False
