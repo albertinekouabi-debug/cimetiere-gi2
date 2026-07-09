@@ -1,6 +1,4 @@
 from ninja import NinjaAPI
-# On importe correctement le visualiseur Swagger officiel
-from ninja.openapi.docs import Swagger
 
 from apps.core.exceptions import register_exception_handlers
 from apps.accounts.api import router as accounts_router
@@ -12,22 +10,16 @@ from apps.payments.api import router as payments_router
 from apps.notifications.api import router as notifications_router
 from apps.audit.api import router as audit_router
 
-# Configuration de l'interface avec les CDN pour Render
+# On désactive la doc par défaut à cet endroit en mettant docs_url=None
 api = NinjaAPI(
     title="API — Gestion de Cimetière GI2",
     version="2.0.0",
     description="API REST (Django Ninja) pour la gestion numérique du cimetière municipal.",
-    docs=Swagger(
-        settings={
-            "swagger_js": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-            "swagger_css": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
-        }
-    ),
+    docs_url=None,  # Désactive la vue automatique boguée
 )
 
 register_exception_handlers(api)
 
-# Enregistrement de vos routeurs
 api.add_router("", accounts_router)
 api.add_router("/cimetiere", cemetery_router)
 api.add_router("/reservations", reservations_router)
