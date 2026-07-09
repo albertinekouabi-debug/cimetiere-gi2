@@ -1,4 +1,5 @@
 from ninja import NinjaAPI
+from ninja.openapi.docs import Swagger
 
 from apps.core.exceptions import register_exception_handlers
 from apps.accounts.api import router as accounts_router
@@ -10,12 +11,15 @@ from apps.payments.api import router as payments_router
 from apps.notifications.api import router as notifications_router
 from apps.audit.api import router as audit_router
 
-# On désactive la doc par défaut à cet endroit en mettant docs_url=None
+# On passe l'objet Swagger directement ici avec les clés de configuration appropriées
 api = NinjaAPI(
     title="API — Gestion de Cimetière GI2",
     version="2.0.0",
     description="API REST (Django Ninja) pour la gestion numérique du cimetière municipal.",
-    docs_url=None,  # Désactive la vue automatique boguée
+    docs=Swagger(settings={
+        "swagger_js": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        "swagger_css": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    })
 )
 
 register_exception_handlers(api)
