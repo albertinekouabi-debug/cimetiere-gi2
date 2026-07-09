@@ -1,5 +1,4 @@
 from ninja import NinjaAPI
-# On ajoute l'importation de Swagger
 from ninja.openapi.docs import Swagger
 
 from apps.core.exceptions import register_exception_handlers
@@ -12,14 +11,18 @@ from apps.payments.api import router as payments_router
 from apps.notifications.api import router as notifications_router
 from apps.audit.api import router as audit_router
 
-# On configure l'API en lui passant les liens CDN indispensables pour Render
+# NOTE : "swagger_js" / "swagger_css" ne sont PAS des clés reconnues par
+# Django Ninja — elles n'ont aucun effet sur le chargement des assets.
+# Le paramètre `settings` de Swagger() ne sert qu'à passer de vraies options
+# à SwaggerUIBundle (voir https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/).
+# Le choix CDN vs assets locaux se fait uniquement via la présence ou
+# l'absence de "ninja" dans INSTALLED_APPS (voir settings.py).
 api = NinjaAPI(
     title="API — Gestion de Cimetière GI2",
     version="2.0.0",
     description="API REST (Django Ninja) pour la gestion numérique du cimetière municipal.",
     docs=Swagger(settings={
-        "swagger_js": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-        "swagger_css": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+        "persistAuthorization": True,  # conserve le token JWT entre les rechargements de /api/docs
     })
 )
 

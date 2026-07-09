@@ -21,7 +21,14 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "corsheaders",
-    "ninja",
+    # IMPORTANT : "ninja" est volontairement RETIRÉ de INSTALLED_APPS.
+    # Django Ninja n'a besoin d'y être que pour servir ses propres assets
+    # Swagger UI (JS/CSS) en LOCAL via le pipeline staticfiles/Whitenoise.
+    # En le retirant, Django Ninja bascule automatiquement sur son template
+    # CDN (swagger_cdn.html) : Swagger UI est alors chargé depuis jsDelivr,
+    # sans dépendre de collectstatic/Whitenoise pour ces fichiers.
+    # Cela règle l'écran blanc de /api/docs de façon robuste et définitive.
+    # "ninja",
     "apps.accounts",
     "apps.cemetery",
     "apps.reservations",
