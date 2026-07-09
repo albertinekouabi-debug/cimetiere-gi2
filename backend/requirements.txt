@@ -1,0 +1,12 @@
+Django==5.2.15
+django-ninja==1.6.2
+psycopg2-binary==2.9.12
+PyJWT==2.13.0
+django-cors-headers==4.9.0
+python-decouple==3.8
+reportlab==4.2.5
+requests==2.34.2
+python-dateutil==2.9.0.post0
+gunicorn==23.0.0
+uvicorn[standard]==0.35.0
+whitenoise==6.12.0
