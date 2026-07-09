@@ -105,7 +105,7 @@ def build_graves_view(page: ft.Page, ctx: SessionContext) -> ft.View:
                     [numero_field, bloc_dd, status_dd, lat_field, lng_field, notes_field], save)
 
     reload()
-    status_filter.on_change = lambda e: reload()
+    status_filter.on_select = lambda e: reload()
 
     def new_grave(e):
         try:

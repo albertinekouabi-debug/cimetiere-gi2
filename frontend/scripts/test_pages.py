@@ -27,15 +27,13 @@ class FakePage:
         self.client_storage = FakeClientStorage()
         self.show_drawer_calls = 0
         self.close_drawer_calls = 0
+        self.launched_urls = []
 
     def update(self):
         pass
 
     def go(self, route):
         self.route = route
-
-    def launch_url(self, url):
-        pass
 
     def show_dialog(self, dialog):
         dialog.open = True
@@ -52,6 +50,9 @@ class FakePage:
 
     async def close_drawer(self):
         self.close_drawer_calls += 1
+
+    async def launch_url(self, url, **kwargs):
+        self.launched_urls.append(url)
 
     def run_task(self, handler, *args, **kwargs):
         return asyncio.run(handler(*args, **kwargs))
@@ -486,6 +487,135 @@ def run_responsive_tests(page, ctx, fails):
     page.width = 1200  # remet le mode desktop par défaut pour la suite des tests
 
 
+def run_filter_and_export_tests(page, ctx, fails):
+    """Non-régression : vérifie que les filtres Dropdown (status/rôle/action/
+    module) modifient réellement la liste affichée — pas seulement leur
+    propre valeur visuelle — et que les boutons d'export CSV/PDF déclenchent
+    effectivement un téléchargement (page.launch_url via page.run_task),
+    puisque ces deux mécanismes reposent sur des API Flet qui se sont
+    révélées silencieusement cassées par le passé (Dropdown.on_change
+    inexistant, page.launch_url désormais une coroutine)."""
+    from app.pages.graves_page import build_graves_view
+    from app.pages.users_page import build_users_view
+    from app.pages.paiements_page import build_paiements_view
+    from app.pages.audit_page import build_audit_view
+
+    def check(name, fn):
+        try:
+            fn()
+            print(f"[OK ] {name}")
+        except Exception as e:
+            print(f"[FAIL] {name} -> {type(e).__name__}: {e}")
+            traceback.print_exc()
+            fails.append(name)
+
+    def find_dropdown_by_label(view, label_substring):
+        for ctrl in _walk_controls(view):
+            if isinstance(ctrl, ft.Dropdown) and label_substring.lower() in (ctrl.label or "").lower():
+                return ctrl
+        return None
+
+    def count_data_rows(view) -> int:
+        for ctrl in _walk_controls(view):
+            if isinstance(ctrl, ft.DataTable):
+                return len(ctrl.rows)
+        return 0
+
+    def test_graves_status_filter_actually_filters():
+        s = ctx.cemetery.create_section({"nom": "Section Filtre Test", "description": None, "superficie": None})
+        b = ctx.cemetery.create_bloc({"section_id": s["id"], "nom": "Bloc Filtre Test"})
+        g1 = ctx.cemetery.create_grave({"bloc_id": b["id"], "numero": "FILT-LIBRE", "status": "libre"})
+        g2 = ctx.cemetery.create_grave({"bloc_id": b["id"], "numero": "FILT-MAINT", "status": "maintenance"})
+
+        view = build_graves_view(page, ctx)
+        rows_unfiltered = count_data_rows(view)
+        assert rows_unfiltered >= 2, "les deux caveaux de test devraient apparaître sans filtre"
+
+        dd = find_dropdown_by_label(view, "filtrer par statut")
+        assert dd is not None, "dropdown de filtre par statut introuvable"
+        assert dd.on_select is not None, "le dropdown de filtre doit avoir un gestionnaire on_select fonctionnel"
+
+        dd.value = "maintenance"
+        dd.on_select(FakeEvent())  # simule la sélection réelle de l'utilisateur ; reload() mute list_container en place dans la MÊME vue
+
+        rows_filtered = count_data_rows(view)
+        assert rows_filtered < rows_unfiltered, (
+            f"le filtre 'maintenance' devrait réduire le nombre de lignes affichées "
+            f"({rows_unfiltered} avant -> {rows_filtered} après, aucune réduction observée)"
+        )
+
+        ctx.cemetery.delete_grave(g1["id"])
+        ctx.cemetery.delete_grave(g2["id"])
+        ctx.cemetery.delete_bloc(b["id"])
+        ctx.cemetery.delete_section(s["id"])
+
+    def test_users_role_filter_actually_filters():
+        u_agent = ctx.users.create({"email": "filtre.agent@cimetiere.cg", "password": "TestFiltre123!", "full_name": "Filtre Agent", "role": "agent"})
+
+        view = build_users_view(page, ctx)
+        rows_unfiltered = count_data_rows(view)
+
+        dd = find_dropdown_by_label(view, "filtrer par rôle")
+        assert dd is not None, "dropdown de filtre par rôle introuvable"
+        assert dd.on_select is not None, "le dropdown de filtre par rôle doit avoir un gestionnaire on_select fonctionnel"
+
+        dd.value = "admin"
+        dd.on_select(FakeEvent())  # reload() mute list_container en place dans la MÊME vue
+
+        rows_filtered = count_data_rows(view)
+        assert rows_filtered < rows_unfiltered, (
+            f"le filtre 'admin' devrait exclure l'agent de test fraîchement créé "
+            f"({rows_unfiltered} avant -> {rows_filtered} après, aucune réduction observée)"
+        )
+
+        ctx.users.delete(u_agent["id"])
+
+    def test_audit_filters_have_working_on_select():
+        view = build_audit_view(page, ctx)
+        action_dd = find_dropdown_by_label(view, "filtrer par action")
+        table_dd = find_dropdown_by_label(view, "filtrer par module")
+        assert action_dd is not None and action_dd.on_select is not None, "filtre action non câblé"
+        assert table_dd is not None and table_dd.on_select is not None, "filtre module non câblé"
+        # Déclenche réellement les deux filtres pour vérifier l'absence de crash.
+        action_dd.value = "login"
+        action_dd.on_select(FakeEvent())
+        table_dd.value = "profiles"
+        table_dd.on_select(FakeEvent())
+
+    def test_paiements_csv_pdf_export_triggers_download():
+        s = ctx.cemetery.create_section({"nom": "Section Export Test", "description": None, "superficie": None})
+        b = ctx.cemetery.create_bloc({"section_id": s["id"], "nom": "Bloc Export Test"})
+        g = ctx.cemetery.create_grave({"bloc_id": b["id"], "numero": "EXPORT-001", "status": "libre"})
+        c = ctx.concessions.create({"grave_id": g["id"], "famille_nom": "Famille Export", "duree": "10_ans", "date_debut": "2026-01-01", "montant_total": 50000})
+        ctx.payments.create({"concession_id": c["id"], "montant": 50000, "date_paiement": "2026-01-01", "mode_paiement": "especes"})
+
+        page.launched_urls = []
+        view = build_paiements_view(page, ctx)
+        assert _click_new_button(page, view, "CSV"), "bouton d'export CSV introuvable"
+        assert any(u.startswith("data:text/csv") for u in page.launched_urls), "l'export CSV n'a déclenché aucun téléchargement (page.launch_url jamais appelé)"
+
+        page.launched_urls = []
+        view = build_paiements_view(page, ctx)
+        assert _click_new_button(page, view, "PDF"), "bouton d'export PDF introuvable"
+        assert any(u.startswith("data:application/pdf") for u in page.launched_urls), "l'export PDF n'a déclenché aucun téléchargement (page.launch_url jamais appelé)"
+
+        ctx.cemetery.delete_grave(g["id"])
+        ctx.cemetery.delete_bloc(b["id"])
+        ctx.cemetery.delete_section(s["id"])
+
+    def test_audit_csv_export_triggers_download():
+        page.launched_urls = []
+        view = build_audit_view(page, ctx)
+        assert _click_new_button(page, view, "Exporter en CSV"), "bouton d'export CSV de l'audit introuvable"
+        assert any(u.startswith("data:text/csv") for u in page.launched_urls), "l'export CSV de l'audit n'a déclenché aucun téléchargement"
+
+    check("Filtre Caveaux (statut) : on_select câblé et fonctionnel", test_graves_status_filter_actually_filters)
+    check("Filtre Utilisateurs (rôle) : on_select câblé et filtre réellement", test_users_role_filter_actually_filters)
+    check("Filtres Audit (action/module) : on_select câblé", test_audit_filters_have_working_on_select)
+    check("Export CSV + PDF Paiements déclenche un téléchargement réel", test_paiements_csv_pdf_export_triggers_download)
+    check("Export CSV Audit déclenche un téléchargement réel", test_audit_csv_export_triggers_download)
+
+
 def run_input_robustness_tests(page, ctx, fails):
     """Non-régression du bug rapporté : saisir '3 800' (espace comme
     séparateur de milliers) dans un champ numérique faisait planter
@@ -716,6 +846,9 @@ def run():
 
     print("\n--- Tests de responsivité (mobile/desktop, drawer, hamburger) ---")
     run_responsive_tests(page, ctx, fails)
+
+    print("\n--- Tests des filtres et exports (non-régression) ---")
+    run_filter_and_export_tests(page, ctx, fails)
 
     # Nettoyage des données de base (les données créées par les tests de
     # soumission de formulaires restent en base : ce script est destiné à une

@@ -108,7 +108,7 @@ def build_users_view(page: ft.Page, ctx: SessionContext) -> ft.View:
 
         form_dialog(page, "Réinitialiser le mot de passe", [info_text, new_password_field], save, save_label="Réinitialiser")
 
-    role_filter.on_change = lambda e: reload()
+    role_filter.on_select = lambda e: reload()
     reload()
 
     content = ft.Column([

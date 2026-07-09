@@ -59,8 +59,8 @@ def build_audit_view(page: ft.Page, ctx: SessionContext) -> ft.View:
         except ApiError as err:
             show_snackbar(page, err.message, success=False)
 
-    action_filter.on_change = lambda e: reload()
-    table_filter.on_change = lambda e: reload()
+    action_filter.on_select = lambda e: reload()
+    table_filter.on_select = lambda e: reload()
     reload()
 
     content = ft.Column([
