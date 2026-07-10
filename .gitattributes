@@ -1,0 +1,4 @@
+# Force les fins de ligne Unix (LF) pour les scripts shell, même édités
+# sous Windows -- évite l'erreur "/usr/bin/env: 'bash\r': No such file or
+# directory" au déploiement sur Render (Linux).
+*.sh text eol=lf
