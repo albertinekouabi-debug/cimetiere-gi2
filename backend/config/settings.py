@@ -146,10 +146,14 @@ USE_I18N = True
 USE_TZ = True
 
 # ─── Fichiers statiques ────────────────────────────────────────────────────────
-STATIC_URL = "static/"
+# IMPORTANT : le "/" initial est obligatoire. Sans lui, Django génère des URLs
+# relatives ("static/admin/css/base.css") qui se résolvent mal sur les pages
+# imbriquées comme /admin/login/ (le navigateur donne alors
+# /admin/login/static/... -> 404 -> admin totalement non stylé).
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
