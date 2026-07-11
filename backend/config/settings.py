@@ -21,13 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "corsheaders",
-    # IMPORTANT : "ninja" est volontairement RETIRÉ de INSTALLED_APPS.
-    # Django Ninja n'a besoin d'y être que pour servir ses propres assets
-    # Swagger UI (JS/CSS) en LOCAL via le pipeline staticfiles/Whitenoise.
-    # En le retirant, Django Ninja bascule automatiquement sur son template
-    # CDN (swagger_cdn.html) : Swagger UI est alors chargé depuis jsDelivr,
-    # sans dépendre de collectstatic/Whitenoise pour ces fichiers.
-    # Cela règle l'écran blanc de /api/docs de façon robuste et définitive.
+    # IMPORTANT : "ninja" est volontairement RETIRÉ de INSTALLED_APPS pour forcer le CDN.
     # "ninja",
     "apps.accounts",
     "apps.cemetery",
@@ -40,17 +34,20 @@ INSTALLED_APPS = [
     "apps.core",
 ]
 
+# ✅ FUSIONNÉ : Une seule liste de Middlewares ordonnée proprement
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Essentiel pour Render
+    "corsheaders.middleware.CorsMiddleware",        # Essentiel pour l'API Flet
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Vos middlewares personnalisés (Audit + Sécurité Carte)
     "apps.audit.middleware.CurrentRequestMiddleware",
+    "apps.audit.middleware.SecurityCSPMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -103,15 +100,10 @@ JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_LIFETIME_MIN = config("JWT_ACCESS_TOKEN_LIFETIME_MIN", default=60, cast=int)
 JWT_REFRESH_TOKEN_LIFETIME_DAYS = config("JWT_REFRESH_TOKEN_LIFETIME_DAYS", default=7, cast=int)
 
-# ─── CORS ─────────────────────────────────────────────────────────────────────
+# ─── CORS & CSRF ──────────────────────────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
 CORS_ALLOW_CREDENTIALS = True
-
-CSRF_TRUSTED_ORIGINS = config(
-    "CSRF_TRUSTED_ORIGINS",
-    default="",
-    cast=Csv(),
-)
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
 
 # ─── MTN MoMo ─────────────────────────────────────────────────────────────────
 MOMO_ENV = config("MOMO_ENV", default="sandbox")
@@ -124,31 +116,27 @@ MOMO_CALLBACK_HOST = config("MOMO_CALLBACK_HOST", default="")
 
 # ─── Google Maps (carte interactive du cimetière) ─────────────────────────────
 GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY", default="")
-
-# Coordonnées exactes du Cimetière Municipal de Vindoulou, Pointe-Noire.
 CEMETERY_CENTER_LAT = config("CEMETERY_CENTER_LAT", default=-4.7333, cast=float)
 CEMETERY_CENTER_LNG = config("CEMETERY_CENTER_LNG", default=11.9167, cast=float)
 
-# Points de repère approximatifs délimitant le site (entrée + limites NE/SO).
-# Ces 3 points ne forment pas un polygone fermé au sens strict (données de
-# terrain limitées) : ils sont reliés pour donner un contour indicatif du
-# site sur la carte, pas une limite cadastrale exacte.
 CEMETERY_BOUNDARY_POINTS = [
     {"lat": -4.7345, "lng": 11.9155, "label": "Entrée principale"},
     {"lat": -4.7312, "lng": 11.9185, "label": "Limite Nord-Est"},
     {"lat": -4.7358, "lng": 11.9142, "label": "Limite Sud-Ouest"},
 ]
 
-# ─── Autorisation d'embarquer /cimetiere/carte-embed/ en iframe ──────────────
-# Le frontend Flet est sur un sous-domaine Render différent du backend, donc
-# la protection anti-clickjacking par défaut de Django bloque l'iframe. On
-# n'autorise explicitement QUE le(s) domaine(s) du frontend, jamais "*".
-# Ajoutable/surchargable via variable d'environnement si l'URL change.
+# ─── Autorisation Iframe & Sécurité Cartographique ───────────────────────────
+X_FRAME_OPTIONS = 'ALLOWALL'  # On laisse le SecurityCSPMiddleware gérer finement via le CSP
 MAP_EMBED_ALLOWED_ORIGINS = config(
     "MAP_EMBED_ALLOWED_ORIGINS",
-    default="https://cimetiere-gi2-2-frontend.onrender.com",
+    default="https://cimetiere-gi2-2-frontend.onrender.com,http://localhost:8550",
     cast=Csv(),
 )
+
+# ─── Paramètres SSL / HTTPS pour Render ──────────────────────────────────────
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 # ─── Internationalisation ─────────────────────────────────────────────────────
 LANGUAGE_CODE = "fr-fr"
@@ -165,7 +153,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ─── Logging ────────────────────────────────────────────────────────────────
+# ─── Ninja & Pagination ───────────────────────────────────────────────────────
+NINJA_PAGINATION_PER_PAGE = 20  
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -181,11 +172,3 @@ LOGGING = {
         "cimetiere": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
     },
 }
-
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
-
-# ─── Ninja ────────────────────────────────────────────────────────────────────
-NINJA_PAGINATION_PER_PAGE = 20
