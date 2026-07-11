@@ -172,8 +172,7 @@ def build_notification_bell(page: ft.Page, ctx: SessionContext) -> ft.Control:
                 ctx.notifications.mark_read(notif_id)
             except Exception:
                 pass
-            dialog.open = False
-            dialog.update()
+            page.pop_dialog()
             page.go(page.route)  # rafraîchit la vue (et donc le badge)
 
         def mark_all_read(e2):
@@ -181,13 +180,11 @@ def build_notification_bell(page: ft.Page, ctx: SessionContext) -> ft.Control:
                 ctx.notifications.mark_all_read()
             except Exception:
                 pass
-            dialog.open = False
-            dialog.update()
+            page.pop_dialog()
             page.go(page.route)
 
         def close_dialog(e2=None):
-            dialog.open = False
-            dialog.update()
+            page.pop_dialog()
 
         if not notifications:
             items = [ft.Text("Aucune notification pour le moment.", color=C.COLOR_TEXT_MUTED, size=13)]

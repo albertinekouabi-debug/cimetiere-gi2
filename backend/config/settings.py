@@ -139,6 +139,17 @@ CEMETERY_BOUNDARY_POINTS = [
     {"lat": -4.7358, "lng": 11.9142, "label": "Limite Sud-Ouest"},
 ]
 
+# ─── Autorisation d'embarquer /cimetiere/carte-embed/ en iframe ──────────────
+# Le frontend Flet est sur un sous-domaine Render différent du backend, donc
+# la protection anti-clickjacking par défaut de Django bloque l'iframe. On
+# n'autorise explicitement QUE le(s) domaine(s) du frontend, jamais "*".
+# Ajoutable/surchargable via variable d'environnement si l'URL change.
+MAP_EMBED_ALLOWED_ORIGINS = config(
+    "MAP_EMBED_ALLOWED_ORIGINS",
+    default="https://cimetiere-gi2-2-frontend.onrender.com",
+    cast=Csv(),
+)
+
 # ─── Internationalisation ─────────────────────────────────────────────────────
 LANGUAGE_CODE = "fr-fr"
 TIME_ZONE = "Africa/Brazzaville"
@@ -146,14 +157,10 @@ USE_I18N = True
 USE_TZ = True
 
 # ─── Fichiers statiques ────────────────────────────────────────────────────────
-# IMPORTANT : le "/" initial est obligatoire. Sans lui, Django génère des URLs
-# relatives ("static/admin/css/base.css") qui se résolvent mal sur les pages
-# imbriquées comme /admin/login/ (le navigateur donne alors
-# /admin/login/static/... -> 404 -> admin totalement non stylé).
-STATIC_URL = "/static/"
+STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-MEDIA_URL = "/media/"
+MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
