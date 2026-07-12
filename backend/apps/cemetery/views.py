@@ -10,12 +10,13 @@ def carte_embed(request):
     Les données des caveaux sont chargées côté client via fetch() sur les
     endpoints publics de l'API (/api/cimetiere/graves, /sections).
 
-    @xframe_options_exempt retire le header X-Frame-Options (DENY par
-    défaut sur tout le site) pour CETTE vue uniquement -- le frontend Flet
-    est sur un sous-domaine Render différent (...-frontend.onrender.com),
-    donc même "SAMEORIGIN" bloquerait l'embed. On restreint quand même
-    l'autorisation via Content-Security-Policy: frame-ancestors, plus
-    précis qu'une exemption totale.
+    @xframe_options_exempt est nécessaire car le middleware Django applique
+    X-Frame-Options: DENY par défaut sur toutes les réponses, ce qui bloque
+    l'affichage dans l'iframe du WebView dès que le frontend et le backend
+    sont déployés sur des origines différentes (ex: deux services Render
+    distincts) — exactement le cas en production. Cette vue est la SEULE
+    exemptée : le reste de l'application (API, admin) reste protégé contre
+    le clickjacking.
     """
     context = {
         "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
@@ -23,9 +24,4 @@ def carte_embed(request):
         "center_lng": settings.CEMETERY_CENTER_LNG,
         "boundary_points": settings.CEMETERY_BOUNDARY_POINTS,
     }
-    response = render(request, "cemetery/carte_embed.html", context)
-    allowed_frame_ancestors = " ".join(
-        ["'self'"] + [origin for origin in settings.MAP_EMBED_ALLOWED_ORIGINS if origin]
-    )
-    response["Content-Security-Policy"] = f"frame-ancestors {allowed_frame_ancestors}"
-    return response
+    return render(request, "cemetery/carte_embed.html", context)

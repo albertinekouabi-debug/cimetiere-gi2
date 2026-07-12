@@ -63,14 +63,25 @@ def build_audit_view(page: ft.Page, ctx: SessionContext) -> ft.View:
     table_filter.on_select = lambda e: reload()
     reload()
 
+    title_text = ft.Text("Journal d'audit — traçabilité des actions", size=16, color=C.COLOR_TEXT_MUTED)
+    export_button = ft.OutlinedButton("Exporter en CSV", icon=ft.Icons.TABLE_CHART_OUTLINED, on_click=do_export_csv,
+                                       style=ft.ButtonStyle(color=C.COLOR_TEXT, side=ft.BorderSide(1, C.COLOR_BORDER)))
+
+    # Sur petit écran, empile le titre au-dessus du bouton plutôt que de les
+    # forcer sur une seule ligne : avec un titre aussi long, un
+    # Row("expand"+bouton) écrasait le conteneur du titre à une largeur
+    # quasi nulle, provoquant un rendu catastrophique (chaque lettre sur sa
+    # propre ligne).
+    narrow = getattr(page, "width", None) is not None and page.width < 640
+    if narrow:
+        header_row = ft.Column([title_text, export_button], spacing=12)
+    else:
+        header_row = ft.Row([ft.Container(content=title_text, expand=True), export_button])
+
     content = ft.Column([
-        ft.Row([
-            ft.Container(content=ft.Text("Journal d'audit — traçabilité des actions", size=16, color=C.COLOR_TEXT_MUTED), expand=True),
-            ft.OutlinedButton("Exporter en CSV", icon=ft.Icons.TABLE_CHART_OUTLINED, on_click=do_export_csv,
-                               style=ft.ButtonStyle(color=C.COLOR_TEXT, side=ft.BorderSide(1, C.COLOR_BORDER))),
-        ]),
+        header_row,
         ft.Container(height=10),
-        ft.Row([action_filter, table_filter]),
+        ft.Row([action_filter, table_filter], wrap=True, spacing=12, run_spacing=12),
         ft.Container(height=16),
         list_container,
     ])

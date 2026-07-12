@@ -169,9 +169,23 @@ def build_paiements_view(page: ft.Page, ctx: SessionContext) -> ft.View:
         action_buttons.append(ft.ElevatedButton("Nouveau paiement", icon=ft.Icons.ADD, on_click=open_manual_form,
                                                    style=ft.ButtonStyle(bgcolor=C.COLOR_PRIMARY, color="#ffffff")))
 
+    title_text = ft.Text("Historique des paiements", size=16, color=C.COLOR_TEXT_MUTED)
+    buttons_row = ft.Row(action_buttons, spacing=8, run_spacing=8, wrap=True)
+
+    # Sur petit écran, empile le titre au-dessus des boutons (eux-mêmes
+    # enveloppants sur plusieurs lignes si besoin) plutôt que de les forcer
+    # sur une seule ligne : avec jusqu'à 4 boutons, un Row("expand"+boutons)
+    # écrasait le conteneur du titre à une largeur quasi nulle, provoquant un
+    # rendu catastrophique où chaque lettre passait à la ligne.
+    narrow = getattr(page, "width", None) is not None and page.width < 640
+    if narrow:
+        header_row = ft.Column([title_text, buttons_row], spacing=12)
+    else:
+        header_row = ft.Row([ft.Container(content=title_text, expand=True), buttons_row])
+
     content = ft.Column([
         stats_row, ft.Container(height=20),
-        ft.Row([ft.Container(content=ft.Text("Historique des paiements", size=16, color=C.COLOR_TEXT_MUTED), expand=True)] + action_buttons),
+        header_row,
         ft.Container(height=16),
         list_container,
     ])

@@ -31,17 +31,24 @@ def build_data_table(columns: list[str], rows: list[list], on_edit=None, on_dele
             cells.append(ft.DataCell(ft.Row(actions, spacing=0)))
         table_rows.append(ft.DataRow(cells=cells))
 
+    table = ft.DataTable(
+        columns=table_columns,
+        rows=table_rows,
+        heading_row_color=C.COLOR_SURFACE_LIGHT,
+        data_row_color={ft.ControlState.HOVERED: C.COLOR_SURFACE_LIGHT},
+        border=ft.Border.all(1, C.COLOR_BORDER),
+        border_radius=10,
+        column_spacing=24,
+        horizontal_lines=ft.BorderSide(1, C.COLOR_BORDER),
+    )
+    # Un DataTable ne réduit ni ne fait passer ses colonnes à la ligne : si
+    # leur largeur cumulée dépasse la largeur de l'écran (quasi systématique
+    # sur mobile dès qu'il y a 4-5 colonnes + actions), les colonnes de
+    # droite étaient tout simplement invisibles, sans aucun moyen d'y
+    # accéder. On enveloppe donc le tableau dans un défilement horizontal :
+    # rien n'est perdu, il suffit de glisser pour voir la suite.
     return ft.Container(
-        content=ft.DataTable(
-            columns=table_columns,
-            rows=table_rows,
-            heading_row_color=C.COLOR_SURFACE_LIGHT,
-            data_row_color={ft.ControlState.HOVERED: C.COLOR_SURFACE_LIGHT},
-            border=ft.Border.all(1, C.COLOR_BORDER),
-            border_radius=10,
-            column_spacing=24,
-            horizontal_lines=ft.BorderSide(1, C.COLOR_BORDER),
-        ),
+        content=ft.Row([table], scroll=ft.ScrollMode.AUTO),
         border_radius=10,
     )
 

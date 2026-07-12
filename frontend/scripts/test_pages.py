@@ -55,6 +55,13 @@ class FakePage:
         self.launched_urls.append(url)
 
     def run_task(self, handler, *args, **kwargs):
+        # Réplique la validation stricte du vrai Page.run_task de Flet, qui
+        # a piégé une régression réelle (page.launch_url passé directement
+        # à run_task levait "handler must be a coroutine function" en
+        # production, alors que le harnais précédent ne le détectait pas).
+        import inspect as _inspect
+        if not _inspect.iscoroutinefunction(handler):
+            raise TypeError("handler must be a coroutine function")
         return asyncio.run(handler(*args, **kwargs))
 
 
